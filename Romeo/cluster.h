@@ -6,7 +6,7 @@
 #include <sys/types.h>
 #include <fcntl.h>
 
-#define CLUSTER_SIZE 512 // 32768*8
+#define CLUSTER_SIZE 256 // 32768*8
 
 typedef struct Cluster{
     int fd; // file descriptor

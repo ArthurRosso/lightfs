@@ -6,12 +6,12 @@
 int main (){
     char* curDir="/root";
     Filesystem_t* filesys = malloc(sizeof(Filesystem_t));
-    Filesystem_t* filesys_teste = malloc(sizeof(Filesystem_t));
+    //Filesystem_t* filesys_teste = malloc(sizeof(Filesystem_t));
 
     Cluster_t* cl = malloc(CLUSTER_SIZE);
-    Cluster_t* cl_teste = malloc(CLUSTER_SIZE);
+    //Cluster_t* cl_teste = malloc(CLUSTER_SIZE);
     filesys->cluster = cl;
-    filesys_teste->cluster = cl_teste;
+    //filesys_teste->cluster = cl_teste;
     
     open_disk(filesys->cluster, "cdoispontos.bin");
     

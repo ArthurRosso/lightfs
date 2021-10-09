@@ -54,7 +54,7 @@ int cluster_read(Cluster_t* cl, size_t index, void* buf){
 int cluster_write(Cluster_t* cl, size_t index, const void* buf){
     
     // move o descritor até o indice do cluster passado como parametro
-	if (lseek(cl->fd, index * CLUSTER_SIZE, SEEK_SET) < 0) {
+	if (lseek(cl->fd, index * CLUSTER_SIZE + 0x108, SEEK_SET) < 0) {
 		printf("\nproblema no (w) lseek");
 		return 0;
 	}
