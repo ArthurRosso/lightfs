@@ -1,3 +1,6 @@
+#ifndef FILE_H
+#define FILE_H
+
 //#include <cstdint>
 #include <stdint.h>
 #include <time.h>
@@ -21,3 +24,5 @@ typedef struct __attribute__((packed)) File {
     char        deleted;    // Se foi deleted
     uint8_t     data[256-33];
 } File_t;
+
+#endif

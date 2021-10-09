@@ -1,29 +1,27 @@
 #include "filesystem.h"
 #include <stdint.h>
-#include <sys/types.h>
+#include <unistd.h>
 
 int make_filesystem(Filesystem_t* fs){
     int i;
 
-    Metadata_t* m = malloc(8); // definir metadados
-    m->meta_size=0x08;
+    //
+    Metadata_t* m = malloc(sizeof(Metadata_t));
     m->index_size=0x08;        // somente o expoente do 2
     m->cluster_size=0x0F;      // somente o expoente do 2
     m->index_begin=0x08;       // inicio do index
     m->root_begin=0x108;        // inicio do root
 
 
-    write(fs->cluster->fd, m, m->meta_size);
+    write(fs->fd, m, sizeof(Metadata_t));
     fs->metadata=m;
 
-    fat_t f;                            // aloca o ponteiro para a tabela FAT
-    //f->index = malloc(NR_CLUSTERS);   // aloca a tabela FAT
-    //f->index[0] = m->root_begin;      // ponteiro para o root
+
     
     //cluster_write(fs->cluster, 1, (char*)f);    // escreve no disco o root
     for(i=0; i<NR_CLUSTERS; i++){
-        f.index[i] = 0x00;                     // definir tabela FAT como 0
-        write(fs->cluster->fd, f.index, sizeof(uint8_t));  // escreve no disco cada elemento da tabela fat
+        fs->index[i] = 0x00;                     // definir tabela FAT como 0
+        write(fs->fd, fs->index, sizeof(uint8_t));  // escreve no disco cada elemento da tabela fat
     }
     //fs->fat=f;
     
@@ -37,35 +35,35 @@ int make_filesystem(Filesystem_t* fs){
     root.deleted = 0;
     for(i=0; i<sizeof(root.data); i++)
         root.data[i] = 0x00;
-    cluster_write(fs->cluster, 0, &root);
+    cluster_write(fs, 0, &root);
+/*
+    // Ceia outros clusters
+    for(i=1; i<NR_CLUSTERS; i++)
+        cluster_write(fs, i, const void *buf)
 
-
-    return 1;
+    return 1;*/
 }
 
-/*
+
+
 int mount_filesystem(Filesystem_t* fs){
     int i;
 
     // pegar metadados
-    Metadata_t* m = malloc(4);
-    cluster_read(fs->cluster, 0, m);
-    fs->metadata=m;
+    Metadata_t* m = malloc(sizeof(Metadata_t));
+    read(fs->fd, m, sizeof(Metadata_t)-3);
+    fs->metadata = m;
 
-
-    fat_t* f = malloc(sizeof(fat_t*));
-    f->index = malloc(NR_CLUSTERS*sizeof(uint8_t*));
-    for(i=0; i<NR_CLUSTERS; i++){
-        cluster_read(fs->cluster, i+1, (char*)f + CLUSTER_SIZE*i);
-    }
-    fs->fat=f;
-
-    // pegar root
+    read(fs->fd, fs->index, sizeof(fs->index));
+    //pegar root
     File_t root;
-    cluster_read(fs->cluster, m->root_begin, &root);
+    cluster_read(fs, 0, &root);
+
+    printf("%ld\n", root.createTime);
 
     return 1;
 }
+
 
 int make_file(File_t* file, char* fname){
 
@@ -86,4 +84,72 @@ int make_dir(File_t* dir, char* dname){
     dir->fileSize = 0x00;
     dir->deleted = 0;
 }
-*/
+
+
+int open_disk(Filesystem_t* fs, char *path){
+
+    int fd;
+	struct stat st;
+
+	open(path, O_CREAT, 0644);
+
+    if ((fd = open(path, O_RDWR, 0644)) < 0) {
+		printf("problema no open");
+		return -1;
+	}
+
+	if (fstat(fd, &st)) {
+		printf("problema no fstat");
+		return -1;
+	}
+
+	/*if (st.st_size % CLUSTER_SIZE != 0) {
+		printf("problema no block");
+		return -1;
+	}*/
+
+	fs->fd = fd;
+	//cl->cluster_index = st.st_size / CLUSTER_SIZE; ??
+
+}
+
+int close_disk(Filesystem_t* fs){
+    close(fs->fd);
+    fs->fd = -1;
+
+    return 1;
+}
+
+int cluster_read(Filesystem_t* fs, size_t index, void* buf){
+
+    // move o descritor até o indice do cluster passado como parametro
+	if (lseek(fs->fd, index * CLUSTER_SIZE + fs->metadata->root_begin, SEEK_SET) < 0) {
+		printf("\nproblema no (r) lseek");
+		return 0;
+	}
+
+	// lê o conteudo do cluster no buffer
+	if (read(fs->fd, buf, CLUSTER_SIZE) < 0) {
+		printf("\nproblema no read");
+		return 0;
+	}
+
+    return 1;
+}
+
+int cluster_write(Filesystem_t* fs, size_t index, const void* buf){
+    
+    // move o descritor até o indice do cluster passado como parametro
+	if (lseek(fs->fd, index * CLUSTER_SIZE + fs->metadata->root_begin, SEEK_SET) < 0) {
+		printf("\nproblema no (w) lseek");
+		return 0;
+	}
+
+	// escreve o conteudo de buffer no cluster
+	if (write(fs->fd, buf, CLUSTER_SIZE) < 0) {
+		printf("\nproblema no write %x", buf);
+		return 0;
+	}
+
+	return 1;
+}
