@@ -14,7 +14,7 @@ int main (){
     
     open_disk(filesys, "cdoispontos.bin");
     
-    if(mount_filesystem(filesys)){
+    if(make_filesystem(filesys)){
         // if(mount_filesystem(filesys_teste)){
             printf("ok: %d\n", filesys->metadata->root_begin);
             // printf("ok: %d\n", filesys_teste->metadata->root_begin);

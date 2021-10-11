@@ -11,9 +11,8 @@
 #include "file.h"
 #include "metadata.h"
 
-#define NR_CLUSTERS     256
-#define CLUSTER_SIZE    256 // 32768*8
-#define BYTE 8
+
+//#define BYTE 8
 
 typedef struct Filesystem{
     // Descritor do arquivo

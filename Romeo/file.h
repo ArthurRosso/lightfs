@@ -5,6 +5,9 @@
 #include <stdint.h>
 #include <time.h>
 
+#define NR_CLUSTERS     256
+#define CLUSTER_SIZE    32000 // 32768*8
+
 enum attribute { 
     ATTR_READ_ONLY = 0x01,
     ATTR_HIDDEN = 0x02,
@@ -21,8 +24,8 @@ typedef struct __attribute__((packed)) File {
     time_t      accessTime; // Ultimo acesso.
     uint8_t     cluster;    // Cluster de começo (0 for an empty file)
     uint32_t    fileSize;   // Tamanho do arquivo
-    char        deleted;    // Se foi deleted
-    uint8_t     data[256-33];
+    //char        deleted;    // Se foi deleted
+    uint8_t     data[CLUSTER_SIZE-32];
 } File_t;
 
 #endif

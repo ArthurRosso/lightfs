@@ -23,8 +23,8 @@ int make_filesystem(Filesystem_t* fs){
         fs->index[i] = 0x00;                     // definir tabela FAT como 0
         write(fs->fd, fs->index, sizeof(uint8_t));  // escreve no disco cada elemento da tabela fat
     }
-    //fs->fat=f;
     
+
     // criar root
     File_t root;
     strcpy(root.name, "root");
@@ -32,16 +32,16 @@ int make_filesystem(Filesystem_t* fs){
     root.createTime = time(0);
     root.accessTime = time(0);
     root.fileSize = 0x00;
-    root.deleted = 0;
     for(i=0; i<sizeof(root.data); i++)
         root.data[i] = 0x00;
     cluster_write(fs, 0, &root);
-/*
-    // Ceia outros clusters
-    for(i=1; i<NR_CLUSTERS; i++)
-        cluster_write(fs, i, const void *buf)
 
-    return 1;*/
+    File_t cluster = {0};
+    for(i=1; i<NR_CLUSTERS; i++)
+        cluster_write(fs, i, &cluster);
+
+
+    return 1;
 }
 
 
@@ -72,7 +72,6 @@ int make_file(File_t* file, char* fname){
     file->createTime = time(0);
     file->accessTime = time(0);
     file->fileSize = 0x00;
-    file->deleted = 0;
 }
 
 int make_dir(File_t* dir, char* dname){
@@ -82,7 +81,6 @@ int make_dir(File_t* dir, char* dname){
     dir->createTime = time(0);
     dir->accessTime = time(0);
     dir->fileSize = 0x00;
-    dir->deleted = 0;
 }
 
 
