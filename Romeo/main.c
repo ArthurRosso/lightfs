@@ -17,6 +17,9 @@ int main (){
     if(make_filesystem(filesys)){
         // if(mount_filesystem(filesys_teste)){
             printf("ok: %d\n", filesys->metadata->root_begin);
+            File_t* file = malloc(sizeof(File_t));
+            if(make_file(filesys, file, "teste", 0))
+                printf("Arquivo criado");
             // printf("ok: %d\n", filesys_teste->metadata->root_begin);
             // printf("ok");
         // } else {

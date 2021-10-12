@@ -28,7 +28,7 @@ typedef struct Filesystem{
 
 int make_filesystem(Filesystem_t* fs);
 int mount_filesystem(Filesystem_t* fs);
-int make_file(File_t* file, char* fname);
+int make_file(Filesystem_t* fs, File_t* file, char* fname, uint8_t father);
 int make_dir(File_t* file, char* fname);
 
 
@@ -37,5 +37,7 @@ int close_disk(Filesystem_t* fs);
 int cluster_write(Filesystem_t* fs, size_t block, const void* buf);
 int cluster_read(Filesystem_t* fs, size_t block, void* buf);
 
+int index_write(Filesystem_t* fs, uint8_t index, uint8_t value);
+int index_read(Filesystem_t* fs, uint8_t index, uint8_t* buf);
 
 #endif
