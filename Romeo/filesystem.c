@@ -30,21 +30,17 @@ int make_filesystem(Filesystem_t* fs){
     strcpy(root.name, "root");
     root.attr = 0x18;                                   // diretório e volume id
     root.createTime = time(0);
-    root.accessTime = time(0);
+    //root.accessTime = time(0);
     root.fileSize = 0x00;
     root.cluster = 0x00;
     cluster_write(fs, 0, &root);
     index_write(fs, 0, 0xFF);
-
 
     File_t cluster = {0};
     for(i=1; i<NR_CLUSTERS; i++)
         cluster_write(fs, i, &cluster);
     return 1;
 }
-
-
-
 int mount_filesystem(Filesystem_t* fs){
     int i;
 
@@ -62,64 +58,6 @@ int mount_filesystem(Filesystem_t* fs){
 
     return 1;
 }
-
-
-int make_file(Filesystem_t* fs, File_t* file, char* fname, uint8_t father){
-    // Checagem se o cluster pai é uma pasta
-    if(fs->index[father] && 0x10  != 0)
-        return 1;
-
-    // Posicionamento na tabela
-    uint8_t index;
-    int i;
-    for(i=1; i<NR_CLUSTERS-1; i++){
-        if(fs->index[i] == 0x00){
-            index = i;
-            break;  
-        }
-    }
-    index_write(fs, index, 0xFF);   // Atualização do index para EOF
-    
-    // Atualização do cluster pai - HARDCODED - POR FAVOR ARRUMAR 
-    int* buf = malloc(sizeof(file->data));
-    lseek(fs->fd, father * CLUSTER_SIZE + fs->metadata->root_begin + 32 /*padding do data*/, SEEK_SET);
-    read(fs->fd, buf, sizeof(uint8_t));
-
-    for(i=0; i<sizeof(buf); i++){
-        if(buf[i] == 0x00){
-            lseek(fs->fd, father * CLUSTER_SIZE + fs->metadata->root_begin + 32 + i /*padding do data*/, SEEK_SET);
-            write(fs->fd, &index, sizeof(uint8_t));
-            break;
-        }       
-    }
-    free(buf); // Livrai-nos dos ponteiros fantasmas amém
-
-    // Checagem de tamanho do nome, extensão....
-    strcpy(file->name, fname);
-    file->attr = 0x20; // arquivo
-    file->createTime = time(0);
-    file->accessTime = time(0);
-    file->fileSize = 0x00;
-    file->cluster = index;
-
-    strcpy(file->data, "Escrevendo dados em um arquivo.");
-
-
-    cluster_write(fs, index, file);
-    
-    return 0;
-}
-
-int make_dir(File_t* dir, char* dname){
-
-    //Checagem do tamanho do nome
-    strcpy(dir->name, dname);
-    dir->attr = 0x10; // diretório
-    dir->createTime = time(0);
-    dir->accessTime = time(0);
-    dir->fileSize = 0x00;
-}
-
 
 int open_disk(Filesystem_t* fs, char *path){
 
@@ -147,7 +85,6 @@ int open_disk(Filesystem_t* fs, char *path){
 	//cl->cluster_index = st.st_size / CLUSTER_SIZE; ??
 
 }
-
 int close_disk(Filesystem_t* fs){
     close(fs->fd);
     fs->fd = -1;
@@ -170,7 +107,6 @@ int cluster_read(Filesystem_t* fs, size_t index, void* buf){
 
     return 1;
 }
-
 int cluster_write(Filesystem_t* fs, size_t index, const void* buf){
     // move o descritor até o indice do cluster passado como parametro
 	if (lseek(fs->fd, index * CLUSTER_SIZE + fs->metadata->root_begin, SEEK_SET) < 0) {
@@ -202,10 +138,9 @@ int index_write(Filesystem_t* fs, uint8_t index, uint8_t value){
 
 	return 1;
 }
-
 int index_read(Filesystem_t* fs, uint8_t index, uint8_t* value){
     // move o descritor até o indice do cluster passado como parametro
-	if (lseek(fs->fd, index + fs->metadata->root_begin, SEEK_SET) < 0) {
+	if (lseek(fs->fd, index + fs->metadata->index_begin, SEEK_SET) < 0) {
 		printf("\nproblema no lseek (ir)");
 		return 0;
 	}
@@ -217,4 +152,73 @@ int index_read(Filesystem_t* fs, uint8_t index, uint8_t* value){
 	}
 
     return 1;
+}
+
+int make_file(Filesystem_t* fs, File_t* file, char* fname, uint8_t father){
+    // Checagem se o cluster pai é uma pasta
+    if(fs->index[father] && 0x10  != 0)
+        return 1;
+
+    // Posicionamento na tabela
+    uint8_t index, temp;
+    int i;
+    for(i=1; i<NR_CLUSTERS-1; i++){
+        index_read(fs, i, &temp);
+        if(temp == 0x00){
+            index = i;
+            break;  
+        }
+    }
+    index_write(fs, index, 0xFF);   // Atualização do index para EOF
+    
+    // Atualização do cluster pai - HARDCODED - POR FAVOR ARRUMAR 
+    int* buf = malloc(sizeof(file->data));
+    lseek(fs->fd, father * CLUSTER_SIZE + fs->metadata->root_begin + 32 /*padding do data*/, SEEK_SET);
+    read(fs->fd, buf, sizeof(uint8_t));
+
+    for(i=0; i<sizeof(buf); i++){
+        if(buf[i] == 0x00){
+            lseek(fs->fd, father * CLUSTER_SIZE + fs->metadata->root_begin + 32 + i /*padding do data*/, SEEK_SET);
+            write(fs->fd, &index, sizeof(uint8_t));
+            break;
+        }       
+    }
+    free(buf); // Livrai-nos dos ponteiros fantasmas amém
+
+    // Checagem de tamanho do nome, extensão....
+
+    strcpy(file->name, fname);
+    file->attr = 0x20; // arquivo
+    file->createTime = time(0);
+    //file->accessTime = time(0);
+    file->fileSize = 0x00;
+    file->cluster = index;
+
+    cluster_write(fs, index, file);
+    
+    return 0;
+}
+int make_dir(File_t* dir, char* dname){
+    //Checagem do tamanho do nome
+    strcpy(dir->name, dname);
+    dir->attr = 0x10; // diretório
+    dir->createTime = time(0);
+    //dir->accessTime = time(0);
+    dir->fileSize = 0x00;
+}
+
+int write_file(Filesystem_t* fs, uint8_t index, void* data, long len){
+    File_t file;
+
+    /*TODO LIST:
+    - Checagem se o clsuter é um arquivo
+    - Fazer a validação se o tamanho vai caber nos dados, e se não, criar um cluster novo (esse me da medo)
+    */
+
+    cluster_read(fs, index, &file);
+    
+    memcpy(&file.data, data, len);
+
+    cluster_write(fs, index, &file);
+
 }

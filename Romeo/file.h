@@ -18,10 +18,10 @@ enum attribute {
 };
 
 typedef struct __attribute__((packed)) File {
-    char        name[10];   // Nome (7 bytes) com extensão (3 byte)
+    char        name[18];   // Nome (15 bytes) com extensão (3 byte)
     uint8_t     attr;       // Atributo
     time_t      createTime; // Data de criação.
-    time_t      accessTime; // Ultimo acesso.
+    //time_t      accessTime; // Ultimo acesso.
     uint8_t     cluster;    // Cluster de começo (0 for an empty file)
     uint32_t    fileSize;   // Tamanho do arquivo
     //char        deleted;    // Se foi deleted
