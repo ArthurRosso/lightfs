@@ -6,7 +6,7 @@
 #include <time.h>
 
 #define NR_CLUSTERS     256
-#define CLUSTER_SIZE    32000 // 32768*8
+#define CLUSTER_SIZE    32768 // 32768*8
 
 enum attribute { 
     ATTR_READ_ONLY = 0x01,

@@ -205,6 +205,8 @@ int make_dir(File_t* dir, char* dname){
     dir->createTime = time(0);
     //dir->accessTime = time(0);
     dir->fileSize = 0x00;
+
+    return 1;
 }
 
 int write_file(Filesystem_t* fs, uint8_t index, void* data, long len){
