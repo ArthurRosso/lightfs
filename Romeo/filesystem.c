@@ -153,20 +153,10 @@ int index_read(Filesystem_t* fs, uint8_t index, uint8_t* value){
     return 1;
 }
 
-int make_file(Filesystem_t* fs, char* fname, uint8_t father, uint8_t type){
-    // Checagem se o cluster pai é uma pasta
-    File_t* file_father = malloc(sizeof(File_t));
-
-    cluster_read(fs, father, file_father); 
-
-    printf("%d\n", file_father->attr);
-    if(file_father->attr && 0x10  == 0){
-        return 1;
-    }
-
-    // Posicionamento na tabela
+uint8_t find_free_cluster(Filesystem_t* fs){
     uint8_t index, temp;
     int i;
+
     for(i=1; i<NR_CLUSTERS-1; i++){
         index_read(fs, i, &temp);
         if(temp == 0x00){
@@ -174,7 +164,24 @@ int make_file(Filesystem_t* fs, char* fname, uint8_t father, uint8_t type){
             break;  
         }
     }
-    index_write(fs, index, 0xFF);   // Atualização do index para EOF
+
+    return index;
+}
+
+int make_file(Filesystem_t* fs, char* fname, uint8_t father, uint8_t type){
+    // Checagem se o cluster pai é uma pasta
+    File_t* file_father = malloc(sizeof(File_t));
+    int i;
+
+    cluster_read(fs, father, file_father); 
+
+    //printf("%d\n", file_father->attr);
+    if(file_father->attr && 0x10  == 0){
+        return 1;
+    }
+
+    uint8_t index = find_free_cluster(fs); 
+    index_write(fs, index, 0xFF);           // Atualização do index para EOF
     
     for(i=0; i<sizeof(file_father->data); i++){
         if(file_father->data[i] == 0x00){
@@ -214,18 +221,37 @@ int make_dir(File_t* dir, char* dname){
     return 1;
 }
 
-int write_file(Filesystem_t* fs, uint8_t index, void* data, long len){
-    File_t file;
+int write_file(Filesystem_t* fs, uint8_t index, void* data, int len){
+    // Checagem se o cluster index é um arquivo
+    File_t* file = malloc(sizeof(File_t));
+    uint8_t next = index;
 
-    /*TODO LIST:
-    - Checagem se o clsuter é um arquivo
-    - Fazer a validação se o tamanho vai caber nos dados, e se não, criar um cluster novo (esse me da medo)
-    */
+    cluster_read(fs, index, file); 
 
-    cluster_read(fs, index, &file);
+    //printf("%d\n", file->attr);
+    if(file->attr && 0x20  == 0){
+        return 1;
+    }
+    printf("%d\n", len/CLUSTER_SIZE);
+
+    while(len/CLUSTER_SIZE>0){
+        printf("entrou\n");
+        memcpy(file->data, data, CLUSTER_SIZE);
+
+        cluster_write(fs, next, file);
+
+        len -= CLUSTER_SIZE;
+
+        // procurar um cluster livre
+        next = find_free_cluster(fs);
+
+        index_write(fs, index, next);
+        index=next;
+    }
+
+    index_write(fs, next, 0xFF);
     
-    memcpy(&file.data, data, len);
+    memcpy(file->data, data, len);
 
-    cluster_write(fs, index, &file);
-
+    cluster_write(fs, next, file);
 }

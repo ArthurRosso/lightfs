@@ -41,7 +41,9 @@ int index_read(Filesystem_t* fs, uint8_t index, uint8_t* buf);
 int make_file(Filesystem_t* fs, char* fname, uint8_t father, uint8_t type);
 int make_dir(File_t* file, char* fname);
 
-int write_file(Filesystem_t* fs, uint8_t index, void* data, long len);
+int write_file(Filesystem_t* fs, uint8_t index, void* data, int len);
+
+uint8_t find_free_cluster(Filesystem_t* fs);
 
 
 #endif
