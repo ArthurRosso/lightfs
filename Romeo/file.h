@@ -8,6 +8,7 @@
 #define NR_CLUSTERS     256
 #define CLUSTER_SIZE    32768 // 32768*8
 
+// Isso tudo é mesmo necessário? 
 enum attribute { 
     ATTR_READ_ONLY = 0x01,
     ATTR_HIDDEN = 0x02,

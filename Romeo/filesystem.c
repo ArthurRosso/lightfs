@@ -1,12 +1,11 @@
 #include "filesystem.h"
 #include <stdint.h>
+#include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
 
 int make_filesystem(Filesystem_t* fs){
     int i;
-
-    //
     Metadata_t* m = malloc(sizeof(Metadata_t));
     m->index_size=0x08;        // somente o expoente do 2
     m->cluster_size=0x0F;      // somente o expoente do 2
@@ -154,10 +153,16 @@ int index_read(Filesystem_t* fs, uint8_t index, uint8_t* value){
     return 1;
 }
 
-int make_file(Filesystem_t* fs, File_t* file, char* fname, uint8_t father){
+int make_file(Filesystem_t* fs, char* fname, uint8_t father, uint8_t type){
     // Checagem se o cluster pai é uma pasta
-    if(fs->index[father] && 0x10  != 0)
+    File_t* file_father = malloc(sizeof(File_t));
+
+    cluster_read(fs, father, file_father); 
+
+    printf("%d\n", file_father->attr);
+    if(file_father->attr && 0x10  == 0){
         return 1;
+    }
 
     // Posicionamento na tabela
     uint8_t index, temp;
@@ -171,26 +176,26 @@ int make_file(Filesystem_t* fs, File_t* file, char* fname, uint8_t father){
     }
     index_write(fs, index, 0xFF);   // Atualização do index para EOF
     
-    // Atualização do cluster pai - HARDCODED - POR FAVOR ARRUMAR 
-    int* buf = malloc(sizeof(file->data));
-    lseek(fs->fd, father * CLUSTER_SIZE + fs->metadata->root_begin + 32 /*padding do data*/, SEEK_SET);
-    read(fs->fd, buf, sizeof(uint8_t));
-
-    for(i=0; i<sizeof(buf); i++){
-        if(buf[i] == 0x00){
-            lseek(fs->fd, father * CLUSTER_SIZE + fs->metadata->root_begin + 32 + i /*padding do data*/, SEEK_SET);
-            write(fs->fd, &index, sizeof(uint8_t));
+    for(i=0; i<sizeof(file_father->data); i++){
+        if(file_father->data[i] == 0x00){
+            file_father->data[i] = index;
             break;
         }       
     }
-    free(buf); // Livrai-nos dos ponteiros fantasmas amém
+    cluster_write(fs, father, file_father);
+    free(file_father); // Livrai-nos dos ponteiros fantasmas amém
 
+    // Criação do cluster
+    File_t* file = calloc(sizeof(File_t), 1);
+        
     // Checagem de tamanho do nome, extensão....
 
     strcpy(file->name, fname);
-    file->attr = 0x20; // arquivo
+    if(type)
+        file->attr = 0x20; // arquivo
+    else
+        file->attr = 0x10; // diretório
     file->createTime = time(0);
-    //file->accessTime = time(0);
     file->fileSize = 0x00;
     file->cluster = index;
 
@@ -198,10 +203,10 @@ int make_file(Filesystem_t* fs, File_t* file, char* fname, uint8_t father){
     
     return 0;
 }
+
 int make_dir(File_t* dir, char* dname){
     //Checagem do tamanho do nome
     strcpy(dir->name, dname);
-    dir->attr = 0x10; // diretório
     dir->createTime = time(0);
     //dir->accessTime = time(0);
     dir->fileSize = 0x00;
