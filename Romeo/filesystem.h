@@ -1,6 +1,7 @@
 #ifndef FYLESYSTEM_H
 #define FYLESYSTEM_H
 
+#include <stdint.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
@@ -9,6 +10,7 @@
 #include <sys/types.h>
 #include <fcntl.h>
 #include "file.h"
+#include <stdbool.h>
 #include "metadata.h"
 
 
@@ -20,9 +22,6 @@ typedef struct Filesystem{
 
     // Metadados
     Metadata_t* metadata;
-
-    // Indice (tabela FAT) TIRAR?
-    uint8_t     index[NR_CLUSTERS];
 } Filesystem_t;
 
 
@@ -39,11 +38,14 @@ int index_write(Filesystem_t* fs, uint8_t index, uint8_t value);
 int index_read(Filesystem_t* fs, uint8_t index, uint8_t* buf);
 
 int make_file(Filesystem_t* fs, char* fname, uint8_t father, uint8_t type);
-int make_dir(File_t* file, char* fname);
+int delete_file(Filesystem_t* fs, uint8_t index);
 
 int write_file(Filesystem_t* fs, uint8_t index, void* data, int len);
 
 uint8_t find_free_cluster(Filesystem_t* fs);
 
+bool is_dir(Filesystem_t* fs, uint8_t index);
+int show_dir(Filesystem_t* fs, uint8_t index, uint8_t* files);
+int child_num(Filesystem_t* fs, uint8_t index); 
 
 #endif
