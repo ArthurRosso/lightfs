@@ -58,14 +58,14 @@ int main(){
 
         if(cmd.compare("CD")==0){
 
-            curDir.clear();
+            // curDir.clear();
             while(getline(ss, item, '/')) {
                 
                 for(uint8_t i=0; i< (show_dir(filesys, 2, &dir) ); i++){
 
                     if(is_dir(filesys, dir[i]) && item.compare(return_name(filesys, dir[i])) == 0){
-                    curDir.append("/");
-                    curDir.append(item);
+                        curDir.append("/");
+                        curDir.append(item);
                     }// else { break e informar erro}
 
                 }               
@@ -81,7 +81,11 @@ int main(){
             cout << "Make Directory" << endl;
 
         } else if (cmd.compare("MKFILE")==0){
-            cout << "Make File" << endl;
+            make_file(filesys, "teste.txt", 0, 1);
+            char* texto1 = "Testando, colocando dados no cluster 1";
+            write_file(filesys, 1, texto1, strlen(texto1));
+            
+            make_file(filesys, "Pasta", 0, 0);
 
         } else if (cmd.compare("EDIT")==0){
             cout << "Edit File" << endl;
