@@ -7,7 +7,7 @@
 
 int make_filesystem(Filesystem_t* fs){
     int i;
-    Metadata_t* m = malloc(sizeof(Metadata_t));
+    Metadata_t* m = (Metadata_t*)malloc(sizeof(Metadata_t));
     m->index_size=0x08;     // somente o expoente do 2
     m->cluster_size=0x0F;   // somente o expoente do 2
     m->index_begin=0x08;    // inicio do index
@@ -37,7 +37,7 @@ int make_filesystem(Filesystem_t* fs){
 
 int mount_filesystem(Filesystem_t* fs){
     // pegar metadados
-    Metadata_t* m = malloc(sizeof(Metadata_t));
+    Metadata_t* m = (Metadata_t*)malloc(sizeof(Metadata_t));
     read(fs->fd, m, sizeof(Metadata_t)-3);
     fs->metadata = m;
 
@@ -156,7 +156,7 @@ uint8_t find_free_cluster(Filesystem_t* fs){
 
 int make_file(Filesystem_t* fs, char* fname, uint8_t father, uint8_t type){
     // Checagem se o cluster pai é uma pasta
-    File_t* file_father = malloc(sizeof(File_t));
+    File_t* file_father = (File_t*)malloc(sizeof(File_t));
     int i;
 
     cluster_read(fs, father, file_father); 
@@ -179,7 +179,7 @@ int make_file(Filesystem_t* fs, char* fname, uint8_t father, uint8_t type){
     free(file_father); // Livrai-nos dos ponteiros fantasmas amém
 
     // Criação do cluster
-    File_t* file = calloc(sizeof(File_t), 1);
+    File_t* file = (File_t*)calloc(sizeof(File_t), 1);
         
     // Checagem de tamanho do nome, extensão....
 
@@ -199,7 +199,7 @@ int make_file(Filesystem_t* fs, char* fname, uint8_t father, uint8_t type){
 
 int write_file(Filesystem_t* fs, uint8_t index, void* data, int len){
     // Checagem se o cluster index é um arquivo
-    File_t* file = malloc(sizeof(File_t));
+    File_t* file = (File_t*)malloc(sizeof(File_t));
     uint8_t next = index;
 
     cluster_read(fs, index, file); 
@@ -229,7 +229,7 @@ int write_file(Filesystem_t* fs, uint8_t index, void* data, int len){
 }
 
     int delete_file(Filesystem_t* fs, uint8_t index){
-        File_t* file = malloc(sizeof(File_t));
+        File_t* file = (File_t*)malloc(sizeof(File_t));
         File_t aux = {0};
         uint8_t value;
         cluster_read(fs, index, file);
@@ -279,7 +279,7 @@ int show_dir(Filesystem_t* fs, uint8_t index, uint8_t** files){
 char* return_name(Filesystem_t* fs, uint8_t index){
     File_t file;
     cluster_read(fs, index, &file);
-    char* name = malloc(sizeof(file.name));
+    char* name = (char*)malloc(sizeof(file.name));
     strcpy(name, file.name);
 
     return name;
