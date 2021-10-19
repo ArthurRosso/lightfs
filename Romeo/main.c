@@ -33,9 +33,9 @@ int main (){
             uint8_t* dir;
             uint8_t childs_num;
 
-            childs_num = show_dir(filesys, 2, dir);
+            childs_num = show_dir(filesys, 0, &dir);
             for(uint8_t i=0; i<childs_num; i++)
-                printf("%d ", *dir);
+                printf("%d - %d   ", i, dir[i]);
 
     return 0;
 }
