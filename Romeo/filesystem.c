@@ -268,14 +268,21 @@ int show_dir(Filesystem_t* fs, uint8_t index, uint8_t** files){
     *files = (uint8_t*) malloc(num * sizeof(uint8_t));
     uint8_t count = 0;
     for(int i=0; i<sizeof(file.data) && count!=num; i++){
-        printf("data %d - %d\n", count, file.data[i]);
         if(file.data[i] != 0x00){
-            *(files[count]) = file.data[i];
+            *(*files+count) = file.data[i];
             count++;
         }
-
     }
     return num;
+}
+
+char* return_name(Filesystem_t* fs, uint8_t index){
+    File_t file;
+    cluster_read(fs, index, &file);
+    char* name = malloc(sizeof(file.name));
+    strcpy(name, file.name);
+
+    return name;
 }
 
 int child_num(Filesystem_t* fs, uint8_t index){

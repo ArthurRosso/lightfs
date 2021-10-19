@@ -47,5 +47,7 @@ uint8_t find_free_cluster(Filesystem_t* fs);
 bool is_dir(Filesystem_t* fs, uint8_t index);
 int show_dir(Filesystem_t* fs, uint8_t index, uint8_t** files);
 int child_num(Filesystem_t* fs, uint8_t index); 
+char* return_name(Filesystem_t* fs, uint8_t index);
+
 
 #endif

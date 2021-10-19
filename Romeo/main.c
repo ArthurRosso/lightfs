@@ -1,6 +1,7 @@
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include "filesystem.h"
 
 int main (){
@@ -30,12 +31,17 @@ int main (){
             //printf("%s\n%s\n", file.name, file.data);
             //delete_file(filesys, 0);
 
+            make_file(filesys, "teste", 2, 0);
             uint8_t* dir;
             uint8_t childs_num;
 
-            childs_num = show_dir(filesys, 0, &dir);
+            childs_num = show_dir(filesys, 2, &dir);
             for(uint8_t i=0; i<childs_num; i++)
-                printf("%d - %d   ", i, dir[i]);
+                printf("%d - %d\n", i, dir[i]);
+
+            char* nome = return_name(filesys, 0);
+            printf("%s", nome);
 
     return 0;
 }
+
