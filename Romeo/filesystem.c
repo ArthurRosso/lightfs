@@ -161,7 +161,6 @@ int make_file(Filesystem_t* fs, char* fname, uint8_t father, uint8_t type){
 
     cluster_read(fs, father, file_father); 
 
-    //printf("%d\n", file_father->attr);
     if(file_father->attr && 0x10  == 0){
         return 1;
     }
@@ -206,7 +205,6 @@ int write_file(Filesystem_t* fs, uint8_t index, void* data, int len){
     if(file->attr && 0x20  == 0){
         return 1;
     }
-    printf("%d\n", len/sizeof(file->data));
 
     while(len/sizeof(file->data)>0){
         memcpy(file->data, data, sizeof(file->data));
@@ -228,20 +226,26 @@ int write_file(Filesystem_t* fs, uint8_t index, void* data, int len){
     return 0;
 }
 
-    int delete_file(Filesystem_t* fs, uint8_t index){
+    int delete_file(Filesystem_t* fs, uint8_t index, uint8_t father){
         File_t* file = (File_t*)malloc(sizeof(File_t));
         File_t aux = {0};
         uint8_t value;
         cluster_read(fs, index, file);
-        printf("data: %s\n", file->data);
-        if(is_dir(fs, index) && memcmp(file->data, &aux.data, sizeof(file->data)) != 0){
-            printf("hmmmm");
-            return 1;
-        }        
+        // Tirar do pai
+        cluster_read(fs, father, &aux);
+        printf("%d\n", father);
+        for(int i=0; i<sizeof(aux.data); i++){
+            printf("Aqui tem %d\n", aux.data[i]);
+            if(aux.data[i] == index){
+                printf("Tirei no %d\n", i);
+                aux.data[i] = 0x00;
+                printf("Agora no %d tem %d\n", i, aux.data[i]);
+                break;
+            }
+        }
+        cluster_write(fs, father, &aux);        
         do{
-            printf("%d - ", index);
             index_read(fs, index, &value);
-            printf("%d\n", value);
             index_write(fs, index, 0x00);
             index = value;
         }while(value != 0xFF);
@@ -289,9 +293,10 @@ int child_num(Filesystem_t* fs, uint8_t index){
     File_t file;
     int num = 0;
     cluster_read(fs, index, &file);
-    for(int i=0; i<=sizeof(file.data); i++){
-        if(file.data[i] != 0x00)
+    for(int i=0; i<sizeof(file.data); i++){
+        if(file.data[i] != 0x00){
             num++;
+        }
     }
 
     return num;

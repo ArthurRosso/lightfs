@@ -38,7 +38,7 @@ int index_write(Filesystem_t* fs, uint8_t index, uint8_t value);
 int index_read(Filesystem_t* fs, uint8_t index, uint8_t* buf);
 
 int make_file(Filesystem_t* fs, char* fname, uint8_t father, uint8_t type);
-int delete_file(Filesystem_t* fs, uint8_t index);
+int delete_file(Filesystem_t* fs, uint8_t index, uint8_t father);
 
 int write_file(Filesystem_t* fs, uint8_t index, void* data, int len);
 
