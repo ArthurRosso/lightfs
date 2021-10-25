@@ -5,6 +5,7 @@
 #include <list>
 #include <vector>
 #include <cstdlib>
+#include <cstring>
 
 #include "../Romeo/filesystem.h"
 
@@ -15,6 +16,8 @@ int main(){
     uint8_t* cache; // chamamos de cache nossa própria abstração da tabela fat como uma lista de listas de indexes
     uint8_t current_index = 0;
     uint8_t* dir;
+    char name[23];
+    char content[255];
 
     Filesystem_t* filesys = (Filesystem_t*)malloc(sizeof(Filesystem_t));
     
@@ -102,18 +105,33 @@ int main(){
             }
 
         } else if (cmd.compare("MKDIR")==0){
+            ss >> item;
+            strcpy(name, item.c_str());
             // Colisão de nome
-            make_file(filesys, "Pasta", current_index, 0);
+            make_file(filesys, name, current_index, 0);
 
 
         } else if (cmd.compare("MKFILE")==0){
+            ss >> item;
+            strcpy(name, item.c_str());
             // Colisão de nome
-            make_file(filesys, "teste.txt", current_index, 1);
+            make_file(filesys, name, current_index, 1);
             //char* texto1 = "Testando, colocando dados no cluster 1";
             //write_file(filesys, 1, texto1, strlen(texto1));
             
         } else if (cmd.compare("EDIT")==0){
-            cout << "Edit File" << endl;
+            uint8_t index = 0;
+            for(uint8_t i=0; i< (show_dir(filesys, current_index, &dir) ); i++){
+                if(item.compare(return_name(filesys, dir[i])) == 0){                       
+                    if(is_dir(filesys, dir[i]) && child_num(filesys, dir[i]) != 0){
+                        break; // mensagem caso tenha pasta e ela tem coisa
+                    }
+                    ss >> item;
+                    strcpy(content, item.c_str());
+                    write_file(filesys, current_index, content, strlen(content));
+                }
+                // mensagem caso nao tenha o arquivo desejado
+            }         
 
         } else if (cmd.compare("RENAME")==0){
             cout << "Rename Directory/File" << endl;
