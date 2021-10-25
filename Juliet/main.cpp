@@ -73,7 +73,7 @@ int main(){
                     break;
                 }*/
 
-                for(uint8_t i=0; i< (show_dir(filesys, index, &dir) ); i++){
+                for(int i=0; i< (show_dir(filesys, index, &dir) ); i++){
 
                     if(is_dir(filesys, dir[i]) && item.compare(return_name(filesys, dir[i])) == 0){
                         curDir.append("/");
@@ -88,13 +88,13 @@ int main(){
             }
 
         } else if (cmd.compare("DIR")==0){
-            for(uint8_t i=0; i< (show_dir(filesys, current_index, &dir)); i++){
+            for(int i=0; i< (show_dir(filesys, current_index, &dir)); i++){
                 cout << return_name(filesys, dir[i]) << "   " /*createion time*/ << endl;
             }
 
         } else if (cmd.compare("RM")==0){
             ss >> item;
-            for(uint8_t i=0; i< (show_dir(filesys, current_index, &dir) ); i++){
+            for(int i=0; i< (show_dir(filesys, current_index, &dir) ); i++){
                 if(item.compare(return_name(filesys, dir[i])) == 0){                       
                     if(is_dir(filesys, dir[i]) && child_num(filesys, dir[i]) != 0){
                         break; // mensagem caso tenha pasta e ela tem coisa
@@ -120,18 +120,17 @@ int main(){
             //write_file(filesys, 1, texto1, strlen(texto1));
             
         } else if (cmd.compare("EDIT")==0){
-            uint8_t index = 0;
-            for(uint8_t i=0; i< (show_dir(filesys, current_index, &dir) ); i++){
-                if(item.compare(return_name(filesys, dir[i])) == 0){                       
-                    if(is_dir(filesys, dir[i]) && child_num(filesys, dir[i]) != 0){
-                        break; // mensagem caso tenha pasta e ela tem coisa
-                    }
+            ss >> item;
+
+            for(int i=0; i< (show_dir(filesys, current_index, &dir) ); i++){
+                cout << dir[i]; // não ta entrando
+
+                if((!is_dir(filesys, dir[i])) && item.compare(return_name(filesys, dir[i])) == 0){
                     ss >> item;
                     strcpy(content, item.c_str());
-                    write_file(filesys, current_index, content, strlen(content));
+                    write_file(filesys, dir[i], content, strlen(content));
                 }
-                // mensagem caso nao tenha o arquivo desejado
-            }         
+            }
 
         } else if (cmd.compare("RENAME")==0){
             cout << "Rename Directory/File" << endl;
