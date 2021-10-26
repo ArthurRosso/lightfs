@@ -1,4 +1,5 @@
 #include "filesystem.h"
+#include "file.h"
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -188,8 +189,6 @@ int make_file(Filesystem_t* fs, char* fname, uint8_t father, uint8_t type){
     else
         file->attr = 0x10; // diretório
     file->createTime = time(0);
-    //file->fileSize = 0x00;
-    //file->cluster = index;
 
     cluster_write(fs, index, file);
     
@@ -200,11 +199,14 @@ int write_file(Filesystem_t* fs, uint8_t index, void* data, int len){
     // Checagem se o cluster index é um arquivo
     File_t* file = (File_t*)malloc(sizeof(File_t));
     uint8_t next = index;
-
+    printf("%d\n", len);
     cluster_read(fs, index, file); 
     if(file->attr && 0x20  == 0){
         return 1;
     }
+
+    void *aux = calloc(1, sizeof(file->data));
+    memcpy(file->data, aux, sizeof(file->data));
 
     while(len/sizeof(file->data)>0){
         memcpy(file->data, data, sizeof(file->data));
@@ -212,7 +214,6 @@ int write_file(Filesystem_t* fs, uint8_t index, void* data, int len){
         cluster_write(fs, next, file);
 
         len -= sizeof(file->data);
-
         // procurar um cluster livre
         next = find_free_cluster(fs);
 
@@ -233,13 +234,9 @@ int write_file(Filesystem_t* fs, uint8_t index, void* data, int len){
         cluster_read(fs, index, file);
         // Tirar do pai
         cluster_read(fs, father, &aux);
-        printf("%d\n", father);
         for(int i=0; i<sizeof(aux.data); i++){
-            printf("Aqui tem %d\n", aux.data[i]);
             if(aux.data[i] == index){
-                printf("Tirei no %d\n", i);
                 aux.data[i] = 0x00;
-                printf("Agora no %d tem %d\n", i, aux.data[i]);
                 break;
             }
         }
@@ -301,3 +298,22 @@ int child_num(Filesystem_t* fs, uint8_t index){
 
     return num;
 }
+
+int set_name(Filesystem_t* fs, uint8_t index, void* name){
+    File_t file;
+    char newname[23] = {0};
+    cluster_read(fs, index, &file);
+    memcpy(newname, name, sizeof(file.name));
+    memcpy(&file.name, newname, sizeof(file.name));
+    cluster_write(fs, index, &file);
+    
+    return 0;
+}
+
+time_t return_time(Filesystem_t* fs, uint8_t index){
+    File_t file;
+    cluster_read(fs, index, &file);
+
+    return file.createTime;
+}
+

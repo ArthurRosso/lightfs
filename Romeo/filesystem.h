@@ -48,6 +48,7 @@ bool is_dir(Filesystem_t* fs, uint8_t index);
 int show_dir(Filesystem_t* fs, uint8_t index, uint8_t** files);
 int child_num(Filesystem_t* fs, uint8_t index); 
 char* return_name(Filesystem_t* fs, uint8_t index);
-
+int set_name(Filesystem_t* fs, uint8_t index, void* name);
+time_t return_time(Filesystem_t* fs, uint8_t index);
 
 #endif

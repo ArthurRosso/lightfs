@@ -6,6 +6,7 @@
 #include <vector>
 #include <cstdlib>
 #include <cstring>
+#include <time.h>
 
 #include "../Romeo/filesystem.h"
 
@@ -17,7 +18,6 @@ int main(){
     uint8_t current_index = 0;
     uint8_t* dir;
     char name[23];
-    char content[255];
 
     Filesystem_t* filesys = (Filesystem_t*)malloc(sizeof(Filesystem_t));
     
@@ -61,79 +61,163 @@ int main(){
         ss >> cmd;
     
         if(cmd.compare("CD")==0){
+            bool entred = false;
+            bool changed;
             uint8_t index = 0;
             int count=0;
-            // curDir.clear();
-            //ss >> item;
-            while(getline(ss, item, '/')) {
-                /*
-                if(index == 0 && item.compare("root") == 0){
-                    curDir = "/root";
+            string new_dir = "/root";
+
+            getline(ss, item, '/');
+            getline(ss, item, '/');
+            if(item.compare("root") != 0){
+                cout << "The path must be in /root!";
+            }
+            else{ 
+                changed = true;
+                while(getline(ss, item, '/')) {
+                    entred = false;
+                    for(uint8_t i=0; i<(show_dir(filesys, index, &dir)); i++){
+                        if(is_dir(filesys, dir[i]) && item.compare(return_name(filesys, dir[i])) == 0){
+                            new_dir.append("/");
+                            new_dir.append(item);
+                            index = dir[i];
+                            current_index = dir[i];
+                            entred = true;
+                            count++;
+                            break;
+                        }              
+                    }
+                    if(entred == false){
+                        cout << item << " not found!" << endl;
+                        changed = false;
+                    }
+                    cout << endl;            
+
+                }
+                if(changed)
+                    curDir = new_dir;
+                if(changed && count == 0)
                     current_index = 0;
-                    break;
-                }*/
 
-                for(int i=0; i< (show_dir(filesys, index, &dir) ); i++){
-
-                    if(is_dir(filesys, dir[i]) && item.compare(return_name(filesys, dir[i])) == 0){
-                        curDir.append("/");
-                        curDir.append(item);
-                        index = dir[i];
-                        current_index = dir[i];
-                        break;
-                    }// else { break e informar erro}
-                
-                    
-                }               
             }
 
+
         } else if (cmd.compare("DIR")==0){
-            for(int i=0; i< (show_dir(filesys, current_index, &dir)); i++){
-                cout << return_name(filesys, dir[i]) << "   " /*createion time*/ << endl;
+            struct tm  ts;
+            char buftime[80];
+            if(show_dir(filesys, current_index, &dir) == 0)
+                cout << "Diretory empty!" << endl;
+            for(uint8_t i=0; i< (show_dir(filesys, current_index, &dir)); i++){
+                time_t time = return_time(filesys, dir[i]);
+                ts = *localtime(&time);
+                strftime(buftime, sizeof(buftime), "%a %Y-%m-%d  %H:%M:%S | ", &ts);
+                cout << buftime << return_name(filesys, dir[i])  << endl;
             }
 
         } else if (cmd.compare("RM")==0){
             ss >> item;
-            for(int i=0; i< (show_dir(filesys, current_index, &dir) ); i++){
-                if(item.compare(return_name(filesys, dir[i])) == 0){                       
+            bool found = false;
+            for(uint8_t i=0; i< (show_dir(filesys, current_index, &dir) ); i++){
+                if(item.compare(return_name(filesys, dir[i])) == 0){  
+                    found = true;                     
                     if(is_dir(filesys, dir[i]) && child_num(filesys, dir[i]) != 0){
-                        break; // mensagem caso tenha pasta e ela tem coisa
+                        cout << return_name(filesys, dir[i]) << " is a non empty directory." << endl;
+                        break; 
                     }
                     delete_file(filesys, dir[i], current_index);
                 }
-                // mensagem caso nao tenha o arquivo desejado
+                
             }
+            if(found == false)
+                cout << item << " not found." << endl;
 
         } else if (cmd.compare("MKDIR")==0){
+            bool create = true;
             ss >> item;
             strcpy(name, item.c_str());
-            // Colisão de nome
-            make_file(filesys, name, current_index, 0);
-
+            if(strlen(name) == 0){
+                cout << "Name may not be blank." << endl;
+            }
+            else{
+                uint8_t index = 0;
+                for(uint8_t i=0; i< (show_dir(filesys, current_index, &dir) ); i++){
+                    if(item.compare(return_name(filesys, dir[i])) == 0){     
+                        create = false;                  
+                        cout << "This name already exist!";    
+                        break;
+                    }
+                }            
+                if(create)
+                    make_file(filesys, name, current_index, 0);
+            }
 
         } else if (cmd.compare("MKFILE")==0){
+            bool create = true;
             ss >> item;
             strcpy(name, item.c_str());
-            // Colisão de nome
-            make_file(filesys, name, current_index, 1);
-            //char* texto1 = "Testando, colocando dados no cluster 1";
-            //write_file(filesys, 1, texto1, strlen(texto1));
+            if(strlen(name) == 0){
+                cout << "Name may not be blank." << endl;
+            }
+            else{
+                int8_t index = 0;
+                for(uint8_t i=0; i< (show_dir(filesys, current_index, &dir) ); i++){
+                    if(item.compare(return_name(filesys, dir[i])) == 0){     
+                        create = false;                  
+                        cout << "This name already exist!";    
+                        break;
+                    }
+                }            
+                if(create == true)
+                    make_file(filesys, name, current_index, 1);
+            }
             
         } else if (cmd.compare("EDIT")==0){
             ss >> item;
-
-            for(int i=0; i< (show_dir(filesys, current_index, &dir) ); i++){
-                cout << dir[i]; // não ta entrando
-
-                if((!is_dir(filesys, dir[i])) && item.compare(return_name(filesys, dir[i])) == 0){
-                    ss >> item;
-                    strcpy(content, item.c_str());
+            string c;
+            bool mod = false;
+            for(uint8_t i=0; i< (show_dir(filesys, current_index, &dir) ); i++){
+                if(item.compare(return_name(filesys, dir[i])) == 0){
+                    while(getline(ss, item, '\"')){
+                        c.append(item);
+                    }
+                    int tam = c.length();
+                    char content[tam]; 
+                    strcpy(content, c.c_str());
                     write_file(filesys, dir[i], content, strlen(content));
+                    mod = true;
                 }
             }
+            if(mod == false)
+                cout << item << " not found." << endl;
 
         } else if (cmd.compare("RENAME")==0){
-            cout << "Rename Directory/File" << endl;
+            bool changed = false;
+            bool exist = false;
+            string new_name;
+            ss >> item;
+            ss >> new_name;
+            uint8_t index = 0;
+            for(uint8_t i=0; i< (show_dir(filesys, current_index, &dir) ); i++){
+                if(new_name.compare(return_name(filesys, dir[i])) == 0){
+                    exist = true;
+                }
+            }
+            if(!exist){
+                for(uint8_t i=0; i< (show_dir(filesys, current_index, &dir) ); i++){
+                    if(item.compare(return_name(filesys, dir[i])) == 0){
+                        strcpy(name, new_name.c_str());
+                        set_name(filesys, dir[i], name);
+                        changed = true;
+                        break;
+                    }
+                }
+                if(!changed){
+                    cout << item <<" not found." << endl;  
+                }
+            }
+            else{
+                cout << new_name << " already exist." << endl;
+            }                   
 
         } else {
             cout << "\nuser@pc: "<< curDir << " $> command not found: " << cmd << endl;
