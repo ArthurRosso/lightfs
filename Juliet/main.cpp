@@ -135,7 +135,39 @@ int main(){
         } else if (cmd.compare("RENAME")==0){
             cout << "Rename Directory/File" << endl;
 
-        } else {
+        } else if (cmd.compare("MOVE")==0){
+            uint8_t father=0, src=0, dst=0;
+            string f1, f2;
+            ss >> f1;
+            ss >> f2;
+            stringstream fi1, fi2;
+            fi1 << f1;
+            fi2 << f2;
+            while(getline(fi1, item, '/')) {
+                father=src;
+                cout << "item1 " << item << endl;
+                for(int i=0; i< (show_dir(filesys, src, &dir) ); i++){
+                    if(is_dir(filesys, dir[i]) && item.compare(return_name(filesys, dir[i])) == 0){
+                        src = dir[i];
+                        continue;
+                    }
+                }               
+            }
+            while(getline(fi2, item, '/')) {
+                cout << "item2 " << item << endl;
+                for(int i=0; i< (show_dir(filesys, dst, &dir) ); i++){
+                    if(is_dir(filesys, dir[i]) && item.compare(return_name(filesys, dir[i])) == 0){
+                        dst = dir[i];
+                        continue;
+                    }
+                }               
+            }
+            cout << "father= " << unsigned(father) << endl;
+            cout << "src= " << unsigned(src) << endl;
+            cout << "dst= " << unsigned(dst) << endl;
+
+
+        }  else {
             cout << "\nuser@pc: "<< curDir << " $> command not found: " << cmd << endl;
         }
     }
