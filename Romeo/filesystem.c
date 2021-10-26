@@ -1,37 +1,32 @@
 #include "filesystem.h"
+#include "file.h"
 #include <stdint.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
 
 int make_filesystem(Filesystem_t* fs){
     int i;
-    Metadata_t* m = malloc(sizeof(Metadata_t));
-    m->index_size=0x08;        // somente o expoente do 2
-    m->cluster_size=0x0F;      // somente o expoente do 2
-    m->index_begin=0x08;       // inicio do index
-    m->root_begin=0x108;        // inicio do root
+    Metadata_t* m = (Metadata_t*)malloc(sizeof(Metadata_t));
+    m->index_size=0x08;     // somente o expoente do 2
+    m->cluster_size=0x0F;   // somente o expoente do 2
+    m->index_begin=0x08;    // inicio do index
+    m->root_begin=0x108;    // inicio do root
 
-
+    lseek(fs->fd, 0, SEEK_SET);
     write(fs->fd, m, sizeof(Metadata_t));
     fs->metadata=m;
 
-    
-    //cluster_write(fs->cluster, 1, (char*)f);    // escreve no disco o root
     for(i=0; i<NR_CLUSTERS; i++){
-        fs->index[i] = 0x00;                     // definir tabela FAT como 0
-        write(fs->fd, fs->index, sizeof(uint8_t));  // escreve no disco cada elemento da tabela fat
+        index_write(fs, i, 0x00);  // escreve no disco cada elemento da tabela fat
     }
     
-
     // criar root
     File_t root = {0};
     strcpy(root.name, "root");
     root.attr = 0x18;                                   // diretório e volume id
     root.createTime = time(0);
-    //root.accessTime = time(0);
-    root.fileSize = 0x00;
-    root.cluster = 0x00;
     cluster_write(fs, 0, &root);
     index_write(fs, 0, 0xFF);
 
@@ -40,20 +35,12 @@ int make_filesystem(Filesystem_t* fs){
         cluster_write(fs, i, &cluster);
     return 1;
 }
-int mount_filesystem(Filesystem_t* fs){
-    int i;
 
+int mount_filesystem(Filesystem_t* fs){
     // pegar metadados
-    Metadata_t* m = malloc(sizeof(Metadata_t));
+    Metadata_t* m = (Metadata_t*)malloc(sizeof(Metadata_t));
     read(fs->fd, m, sizeof(Metadata_t)-3);
     fs->metadata = m;
-
-    read(fs->fd, fs->index, sizeof(fs->index));
-    //pegar root
-    File_t root;
-    cluster_read(fs, 0, &root);
-
-    printf("%ld\n", root.createTime);
 
     return 1;
 }
@@ -153,20 +140,10 @@ int index_read(Filesystem_t* fs, uint8_t index, uint8_t* value){
     return 1;
 }
 
-int make_file(Filesystem_t* fs, char* fname, uint8_t father, uint8_t type){
-    // Checagem se o cluster pai é uma pasta
-    File_t* file_father = malloc(sizeof(File_t));
-
-    cluster_read(fs, father, file_father); 
-
-    printf("%d\n", file_father->attr);
-    if(file_father->attr && 0x10  == 0){
-        return 1;
-    }
-
-    // Posicionamento na tabela
+uint8_t find_free_cluster(Filesystem_t* fs){
     uint8_t index, temp;
     int i;
+
     for(i=1; i<NR_CLUSTERS-1; i++){
         index_read(fs, i, &temp);
         if(temp == 0x00){
@@ -174,7 +151,23 @@ int make_file(Filesystem_t* fs, char* fname, uint8_t father, uint8_t type){
             break;  
         }
     }
-    index_write(fs, index, 0xFF);   // Atualização do index para EOF
+
+    return index;
+}
+
+int make_file(Filesystem_t* fs, char* fname, uint8_t father, uint8_t type){
+    // Checagem se o cluster pai é uma pasta
+    File_t* file_father = (File_t*)malloc(sizeof(File_t));
+    int i;
+
+    cluster_read(fs, father, file_father); 
+
+    if(file_father->attr && 0x10  == 0){
+        return 1;
+    }
+
+    uint8_t index = find_free_cluster(fs); 
+    index_write(fs, index, 0xFF);           // Atualização do index para EOF
     
     for(i=0; i<sizeof(file_father->data); i++){
         if(file_father->data[i] == 0x00){
@@ -186,7 +179,7 @@ int make_file(Filesystem_t* fs, char* fname, uint8_t father, uint8_t type){
     free(file_father); // Livrai-nos dos ponteiros fantasmas amém
 
     // Criação do cluster
-    File_t* file = calloc(sizeof(File_t), 1);
+    File_t* file = (File_t*)calloc(sizeof(File_t), 1);
         
     // Checagem de tamanho do nome, extensão....
 
@@ -196,36 +189,157 @@ int make_file(Filesystem_t* fs, char* fname, uint8_t father, uint8_t type){
     else
         file->attr = 0x10; // diretório
     file->createTime = time(0);
-    file->fileSize = 0x00;
-    file->cluster = index;
 
     cluster_write(fs, index, file);
     
     return 0;
 }
 
-int make_dir(File_t* dir, char* dname){
-    //Checagem do tamanho do nome
-    strcpy(dir->name, dname);
-    dir->createTime = time(0);
-    //dir->accessTime = time(0);
-    dir->fileSize = 0x00;
+int write_file(Filesystem_t* fs, uint8_t index, void* data, int len){
+    // Checagem se o cluster index é um arquivo
+    File_t* file = (File_t*)malloc(sizeof(File_t));
+    uint8_t next = index;
+    cluster_read(fs, index, file); 
+    if(file->attr && 0x20  == 0){
+        return 1;
+    }
 
-    return 1;
+    void *aux = calloc(1, sizeof(file->data));
+    memcpy(file->data, aux, sizeof(file->data));
+
+    while(len/sizeof(file->data)>0){
+        memcpy(file->data, data, sizeof(file->data));
+
+        cluster_write(fs, next, file);
+
+        len -= sizeof(file->data);
+        // procurar um cluster livre
+        next = find_free_cluster(fs);
+
+        index_write(fs, index, next);
+        index=next;
+    }
+
+    index_write(fs, next, 0xFF);
+    memcpy(file->data, data, len);
+    cluster_write(fs, next, file);
+    return 0;
 }
 
-int write_file(Filesystem_t* fs, uint8_t index, void* data, long len){
+    int delete_file(Filesystem_t* fs, uint8_t index, uint8_t father){
+        File_t* file = (File_t*)malloc(sizeof(File_t));
+        File_t aux = {0};
+        uint8_t value;
+        cluster_read(fs, index, file);
+        // Tirar do pai
+        cluster_read(fs, father, &aux);
+        for(int i=0; i<sizeof(aux.data); i++){
+            if(aux.data[i] == index){
+                aux.data[i] = 0x00;
+                break;
+            }
+        }
+        cluster_write(fs, father, &aux);        
+        do{
+            index_read(fs, index, &value);
+            index_write(fs, index, 0x00);
+            index = value;
+        }while(value != 0xFF);
+
+        return 0;
+    }
+
+bool is_dir(Filesystem_t* fs, uint8_t index){
     File_t file;
-
-    /*TODO LIST:
-    - Checagem se o clsuter é um arquivo
-    - Fazer a validação se o tamanho vai caber nos dados, e se não, criar um cluster novo (esse me da medo)
-    */
-
     cluster_read(fs, index, &file);
-    
-    memcpy(&file.data, data, len);
+    if(file.attr && ATTR_DIRECTORY != 0)
+        return true;
+    else
+        return false;
+} 
 
+int show_dir(Filesystem_t* fs, uint8_t index, uint8_t** files){
+    if(is_dir(fs, index) == false)
+        return -1;
+
+    File_t file;
+    uint8_t num = child_num(fs, index);
+    cluster_read(fs, index, &file);
+    *files = (uint8_t*) malloc(num * sizeof(uint8_t));
+    uint8_t count = 0;
+    for(int i=0; i<sizeof(file.data) && count!=num; i++){
+        if(file.data[i] != 0x00){
+            *(*files+count) = file.data[i];
+            count++;
+        }
+    }
+    return num;
+}
+
+char* return_name(Filesystem_t* fs, uint8_t index){
+    File_t file;
+    cluster_read(fs, index, &file);
+    char* name = (char*)malloc(sizeof(file.name));
+    strcpy(name, file.name);
+
+    return name;
+}
+
+int child_num(Filesystem_t* fs, uint8_t index){
+    File_t file;
+    int num = 0;
+    cluster_read(fs, index, &file);
+    for(int i=0; i<sizeof(file.data); i++){
+        if(file.data[i] != 0x00){
+            num++;
+        }
+    }
+
+    return num;
+}
+
+int set_name(Filesystem_t* fs, uint8_t index, void* name){
+    File_t file;
+    char newname[23] = {0};
+    cluster_read(fs, index, &file);
+    memcpy(newname, name, sizeof(file.name));
+    memcpy(&file.name, newname, sizeof(file.name));
     cluster_write(fs, index, &file);
+    
+    return 0;
+}
 
+time_t return_time(Filesystem_t* fs, uint8_t index){
+    File_t file;
+    cluster_read(fs, index, &file);
+
+    return file.createTime;
+}
+
+int change_child(Filesystem_t* fs, uint8_t index_file, uint8_t index_dst, uint8_t index_father){
+    File_t file, aux = {0};
+
+     cluster_read(fs, index_file, &file);
+
+        // Tirar do pai
+        cluster_read(fs, index_father, &aux);
+        for(int i=0; i<sizeof(aux.data); i++){
+            if(aux.data[i] == index_file){
+                aux.data[i] = 0x00;
+                break;
+            }
+        }
+        cluster_write(fs, index_father, &aux);
+
+        // TColoca no destino
+        cluster_read(fs, index_dst, &aux);
+        for(int i=0; i<sizeof(aux.data); i++){
+            if(aux.data[i] == 0x00){
+                aux.data[i] = index_file;
+                break;
+            }
+        }
+        cluster_write(fs, index_dst, &aux);  
+
+        return 0;      
 }
