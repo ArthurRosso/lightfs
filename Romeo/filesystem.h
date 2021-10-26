@@ -50,5 +50,6 @@ int child_num(Filesystem_t* fs, uint8_t index);
 char* return_name(Filesystem_t* fs, uint8_t index);
 int set_name(Filesystem_t* fs, uint8_t index, void* name);
 time_t return_time(Filesystem_t* fs, uint8_t index);
+int change_child(Filesystem_t* fs, uint8_t index_src, uint8_t index_dst, uint8_t index_father);
 
 #endif

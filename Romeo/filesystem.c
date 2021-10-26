@@ -199,7 +199,6 @@ int write_file(Filesystem_t* fs, uint8_t index, void* data, int len){
     // Checagem se o cluster index é um arquivo
     File_t* file = (File_t*)malloc(sizeof(File_t));
     uint8_t next = index;
-    printf("%d\n", len);
     cluster_read(fs, index, file); 
     if(file->attr && 0x20  == 0){
         return 1;
@@ -317,3 +316,30 @@ time_t return_time(Filesystem_t* fs, uint8_t index){
     return file.createTime;
 }
 
+int change_child(Filesystem_t* fs, uint8_t index_file, uint8_t index_dst, uint8_t index_father){
+    File_t file, aux = {0};
+
+     cluster_read(fs, index_file, &file);
+
+        // Tirar do pai
+        cluster_read(fs, index_father, &aux);
+        for(int i=0; i<sizeof(aux.data); i++){
+            if(aux.data[i] == index_file){
+                aux.data[i] = 0x00;
+                break;
+            }
+        }
+        cluster_write(fs, index_father, &aux);
+
+        // TColoca no destino
+        cluster_read(fs, index_dst, &aux);
+        for(int i=0; i<sizeof(aux.data); i++){
+            if(aux.data[i] == 0x00){
+                aux.data[i] = index_file;
+                break;
+            }
+        }
+        cluster_write(fs, index_dst, &aux);  
+
+        return 0;      
+}

@@ -7,6 +7,7 @@
 #include <cstdlib>
 #include <cstring>
 #include <time.h>
+#include <algorithm>
 
 #include "../Romeo/filesystem.h"
 
@@ -30,6 +31,9 @@ int main(){
         getline(cin, line);
         stringstream ss(line);
         ss >> cmd;
+        for_each(cmd.begin(), cmd.end(), [](char & c){
+            c =toupper(c); 
+        });
 
         if(cmd.compare("MKFS")==0){
             make_filesystem(filesys);
@@ -59,6 +63,9 @@ int main(){
         getline(cin, line);
         stringstream ss(line);
         ss >> cmd;
+        for_each(cmd.begin(), cmd.end(), [](char & c){
+            c =toupper(c); 
+        });
     
         if(cmd.compare("CD")==0){
             bool entred = false;
@@ -70,14 +77,14 @@ int main(){
             getline(ss, item, '/');
             getline(ss, item, '/');
             if(item.compare("root") != 0){
-                cout << "The path must be in /root!";
+                cout << "The path must be in /root!" << endl;
             }
             else{ 
                 changed = true;
                 while(getline(ss, item, '/')) {
                     entred = false;
                     for(uint8_t i=0; i<(show_dir(filesys, index, &dir)); i++){
-                        if(is_dir(filesys, dir[i]) && item.compare(return_name(filesys, dir[i])) == 0){
+                        if(is_dir(filesys, dir[i]) == true && item.compare(return_name(filesys, dir[i])) == 0){
                             new_dir.append("/");
                             new_dir.append(item);
                             index = dir[i];
@@ -91,7 +98,6 @@ int main(){
                         cout << item << " not found!" << endl;
                         changed = false;
                     }
-                    cout << endl;            
 
                 }
                 if(changed)
@@ -138,12 +144,15 @@ int main(){
             if(strlen(name) == 0){
                 cout << "Name may not be blank." << endl;
             }
+            else if (strlen(name) > 23) {
+                cout << "Name may not be longer than 23 characteres!" << endl;
+            }
             else{
                 uint8_t index = 0;
                 for(uint8_t i=0; i< (show_dir(filesys, current_index, &dir) ); i++){
                     if(item.compare(return_name(filesys, dir[i])) == 0){     
                         create = false;                  
-                        cout << "This name already exist!";    
+                        cout << "This name already exist!" << endl;    
                         break;
                     }
                 }            
@@ -158,12 +167,15 @@ int main(){
             if(strlen(name) == 0){
                 cout << "Name may not be blank." << endl;
             }
+            else if (strlen(name) > 23) {
+                cout << "Name may not be longer than 23 characteres!" << endl;
+            }
             else{
                 int8_t index = 0;
                 for(uint8_t i=0; i< (show_dir(filesys, current_index, &dir) ); i++){
                     if(item.compare(return_name(filesys, dir[i])) == 0){     
                         create = false;                  
-                        cout << "This name already exist!";    
+                        cout << "This name already exist!" << endl;    
                         break;
                     }
                 }            
@@ -219,7 +231,40 @@ int main(){
                 cout << new_name << " already exist." << endl;
             }                   
 
-        } else {
+        } 
+        else if (cmd.compare("MOVE")==0){
+            uint8_t father=0, src=0, dst=0;
+            string f1, f2;
+            ss >> f1;
+            ss >> f2;
+            stringstream fi1, fi2;
+            fi1 << f1;
+            fi2 << f2;
+            while(getline(fi1, item, '/')) {
+                father=src;
+                cout << "item1 " << item << endl;
+                for(int i=0; i< (show_dir(filesys, src, &dir) ); i++){
+                    if(is_dir(filesys, dir[i]) && item.compare(return_name(filesys, dir[i])) == 0){
+                        src = dir[i];
+                        continue;
+                    }
+                }
+            }
+            while(getline(fi2, item, '/')) {
+                cout << "item2 " << item << endl;
+                for(int i=0; i< (show_dir(filesys, dst, &dir) ); i++){
+                    if(is_dir(filesys, dir[i]) && item.compare(return_name(filesys, dir[i])) == 0){
+                        dst = dir[i];
+                        continue;
+                    }
+                }
+            }
+
+            change_child(filesys, src, dst, father);
+
+
+
+        }else {
             cout << "\nuser@pc: "<< curDir << " $> command not found: " << cmd << endl;
         }
     }
