@@ -25,7 +25,7 @@ int make_filesystem(Filesystem_t* fs){
     // criar root
     File_t root = {0};
     strcpy(root.name, "root");
-    root.attr = 0x18;                                   // diretório e volume id
+    root.attr = 0x10;                                   // diretório e volume id
     root.createTime = time(0);
     cluster_write(fs, 0, &root);
     index_write(fs, 0, 0xFF);
@@ -249,17 +249,17 @@ int write_file(Filesystem_t* fs, uint8_t index, void* data, int len){
         return 0;
     }
 
-bool is_dir(Filesystem_t* fs, uint8_t index){
+int is_dir(Filesystem_t* fs, uint8_t index){
     File_t file;
     cluster_read(fs, index, &file);
-    if(file.attr && ATTR_DIRECTORY != 0)
-        return true;
+    if(file.attr == ATTR_DIRECTORY)
+        return 0;
     else
-        return false;
+        return 1;
 } 
 
 int show_dir(Filesystem_t* fs, uint8_t index, uint8_t** files){
-    if(is_dir(fs, index) == false)
+    if(is_dir(fs, index) == 1)
         return -1;
 
     File_t file;
@@ -318,28 +318,26 @@ time_t return_time(Filesystem_t* fs, uint8_t index){
 
 int change_child(Filesystem_t* fs, uint8_t index_file, uint8_t index_dst, uint8_t index_father){
     File_t file, aux = {0};
-
-     cluster_read(fs, index_file, &file);
+    cluster_read(fs, index_file, &file);
 
         // Tirar do pai
-        cluster_read(fs, index_father, &aux);
-        for(int i=0; i<sizeof(aux.data); i++){
-            if(aux.data[i] == index_file){
-                aux.data[i] = 0x00;
-                break;
-            }
+    cluster_read(fs, index_father, &aux);
+    for(int i=0; i<sizeof(aux.data); i++){
+        if(aux.data[i] == index_file){
+            aux.data[i] = 0x00;
+            break;
         }
-        cluster_write(fs, index_father, &aux);
-
-        // TColoca no destino
-        cluster_read(fs, index_dst, &aux);
-        for(int i=0; i<sizeof(aux.data); i++){
-            if(aux.data[i] == 0x00){
-                aux.data[i] = index_file;
-                break;
-            }
+    }
+    cluster_write(fs, index_father, &aux);
+    // Coloca no destino
+    cluster_read(fs, index_dst, &aux);
+    for(int i=0; i<sizeof(aux.data); i++){
+        if(aux.data[i] == 0x00){
+            aux.data[i] = index_file;
+            break;
         }
-        cluster_write(fs, index_dst, &aux);  
+    }
+    cluster_write(fs, index_dst, &aux);  
 
-        return 0;      
+    return 0;      
 }

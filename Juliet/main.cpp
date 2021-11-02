@@ -84,7 +84,7 @@ int main(){
                 while(getline(ss, item, '/')) {
                     entred = false;
                     for(uint8_t i=0; i<(show_dir(filesys, index, &dir)); i++){
-                        if(is_dir(filesys, dir[i]) == true && item.compare(return_name(filesys, dir[i])) == 0){
+                        if((is_dir(filesys, dir[i]) == 0) && item.compare(return_name(filesys, dir[i])) == 0){
                             new_dir.append("/");
                             new_dir.append(item);
                             index = dir[i];
@@ -126,7 +126,7 @@ int main(){
             for(uint8_t i=0; i< (show_dir(filesys, current_index, &dir) ); i++){
                 if(item.compare(return_name(filesys, dir[i])) == 0){  
                     found = true;                     
-                    if(is_dir(filesys, dir[i]) && child_num(filesys, dir[i]) != 0){
+                    if((is_dir(filesys, dir[i]) == 0) && child_num(filesys, dir[i]) != 0){
                         cout << return_name(filesys, dir[i]) << " is a non empty directory." << endl;
                         break; 
                     }
@@ -242,18 +242,16 @@ int main(){
             fi2 << f2;
             while(getline(fi1, item, '/')) {
                 father=src;
-                cout << "item1 " << item << endl;
                 for(int i=0; i< (show_dir(filesys, src, &dir) ); i++){
-                    if(is_dir(filesys, dir[i]) && item.compare(return_name(filesys, dir[i])) == 0){
+                    if(item.compare(return_name(filesys, dir[i])) == 0){
                         src = dir[i];
                         continue;
                     }
                 }
             }
             while(getline(fi2, item, '/')) {
-                cout << "item2 " << item << endl;
                 for(int i=0; i< (show_dir(filesys, dst, &dir) ); i++){
-                    if(is_dir(filesys, dir[i]) && item.compare(return_name(filesys, dir[i])) == 0){
+                    if((is_dir(filesys, dir[i]) == 0) && item.compare(return_name(filesys, dir[i])) == 0){
                         dst = dir[i];
                         continue;
                     }
